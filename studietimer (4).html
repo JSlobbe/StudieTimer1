@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Studietimer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c26;
+    --border: rgba(255,255,255,0.07);
+    --accent: #7c6af7;
+    --accent2: #a899ff;
+    --green: #3de8a0;
+    --green-dim: #1a6647;
+    --text: #f0eeff;
+    --text-dim: #8880aa;
+    --text-muted: #4a4468;
+    --radius: 20px;
+  }
+
+  html, body {
+    min-height: 100%;
+    background: var(--bg);
+    font-family: 'Syne', sans-serif;
+    margin: 0; padding: 0;
+  }
+
+  .phone {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .screen {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 56px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+    scrollbar-width: none;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-top: 8px;
+  }
+  .header-title { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1.1; }
+  .header-date { font-size: 12px; color: var(--text-dim); margin-top: 4px; font-weight: 400; }
+  .streak-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 6px 12px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--text);
+  }
+  .flame { font-size: 16px; }
+
+  /* big clock */
+  .clock-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px 24px 32px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .clock-card::before {
+    content: '';
+    position: absolute;
+    top: -60px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 120px;
+    background: radial-gradient(ellipse, rgba(124,106,247,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .clock-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+  .clock-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 76px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+  .clock-time.done { color: var(--green); }
+  .clock-sub { font-size: 13px; color: var(--text-dim); font-weight: 400; }
+
+
+
+  /* progress bar */
+  .prog-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .prog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .prog-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .prog-count { font-size: 13px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+  .prog-bar-bg { height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .prog-bar-fill { height: 8px; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; transition: width 1s linear; }
+  .prog-bar-fill.done { background: linear-gradient(90deg, #1a9e6a, var(--green)); }
+  .prog-ticks { display: flex; justify-content: space-between; margin-top: 8px; }
+  .prog-tick { font-size: 10px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+
+  /* stat row */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .stat-box-lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .stat-box-val { font-size: 22px; font-weight: 700; color: var(--text); font-family: 'DM Mono', monospace; }
+  .stat-box-val.green { color: var(--green); }
+
+  /* buttons */
+  .btn-row { display: flex; gap: 12px; }
+  .btn-main {
+    flex: 1;
+    height: 60px;
+    border-radius: 16px;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+    background: var(--accent);
+    color: #fff;
+    letter-spacing: 0.02em;
+  }
+  .btn-main:active { transform: scale(0.97); opacity: 0.85; }
+  .btn-main.paused { background: var(--surface2); color: var(--accent2); border: 1px solid var(--accent); }
+  .btn-main.done-btn { background: var(--green-dim); color: var(--green); }
+  .btn-reset {
+    width: 60px; height: 60px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-reset:active { transform: scale(0.95); }
+
+  /* history */
+  .history-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .history-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+  .history-days { display: flex; gap: 8px; }
+  .day-dot {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .day-dot-circle {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+  .day-dot-circle.complete { background: rgba(61,232,160,0.15); border-color: var(--green); color: var(--green); }
+  .day-dot-circle.today { border-color: var(--accent); color: var(--accent2); }
+  .day-dot-lbl { font-size: 10px; color: var(--text-muted); }
+
+  /* done overlay */
+  .done-overlay {
+    position: absolute; inset: 0;
+    background: rgba(10,10,15,0.92);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px;
+    z-index: 200;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  .done-overlay.show { opacity: 1; pointer-events: all; }
+  .done-big { font-size: 72px; line-height: 1; }
+  .done-text { font-size: 26px; font-weight: 800; color: var(--green); }
+  .done-sub { font-size: 14px; color: var(--text-dim); }
+  .done-dismiss {
+    margin-top: 16px;
+    padding: 12px 32px;
+    border-radius: 99px;
+    background: var(--green-dim);
+    color: var(--green);
+    font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 700;
+    border: none; cursor: pointer;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-muted);
+    display: inline-block;
+    margin-right: 6px;
+    transition: background 0.3s;
+  }
+  .status-dot.active { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .session-status {
+    display: flex; align-items: center;
+    font-size: 12px; color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="done-overlay" id="doneOverlay">
+    <div class="done-big">🎓</div>
+    <div class="done-text">Doel bereikt!</div>
+    <div class="done-sub">6 uur gestudeerd vandaag</div>
+    <button class="done-dismiss" onclick="dismissDone()">Top! Sluiten</button>
+  </div>
+
+  <div class="screen">
+
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <div class="header-title">Studietimer</div>
+        <div class="header-date" id="dateLabel"></div>
+      </div>
+      <div class="streak-badge">
+        <span class="flame">🔥</span>
+        <span id="streakNum">0</span>
+      </div>
+    </div>
+
+    <!-- Ring + Clock -->
+    <div class="clock-card">
+      <div class="clock-label">resterend vandaag</div>
+
+      <div class="clock-time" id="clockDisplay">06:00:00</div>
+      <div class="session-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Klaar om te beginnen</span>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="prog-card">
+      <div class="prog-header">
+        <span class="prog-title">Voortgang</span>
+        <span class="prog-count" id="progCount">0:00 / 6:00</span>
+      </div>
+      <div class="prog-bar-bg">
+        <div class="prog-bar-fill" id="progFill" style="width:0%"></div>
+      </div>
+      <div class="prog-ticks">
+        <span class="prog-tick">0u</span>
+        <span class="prog-tick">1u30</span>
+        <span class="prog-tick">3u</span>
+        <span class="prog-tick">4u30</span>
+        <span class="prog-tick">6u</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-box-lbl">Gestudeerd</div>
+        <div class="stat-box-val" id="studiedStat">0:00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-lbl">Sessies</div>
+        <div class="stat-box-val" id="sessionsStat">0</div>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+      <button class="btn-main" id="mainBtn" onclick="toggleTimer()">Start</button>
+      <button class="btn-reset" onclick="resetDay()" title="Reset dag">↺</button>
+    </div>
+
+    <!-- Week history -->
+    <div class="history-card">
+      <div class="history-title">Deze week</div>
+      <div class="history-days" id="weekDays"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const GOAL = 6 * 3600;
+
+  let elapsed = 0;
+  let running = false;
+  let interval = null;
+  let sessions = 0;
+  let streak = 0;
+  let doneFired = false;
+
+  // load from localStorage
+  const today = new Date().toDateString();
+  const saved = JSON.parse(localStorage.getItem('studietimer') || '{}');
+  if (saved.date === today) {
+    elapsed = saved.elapsed || 0;
+    sessions = saved.sessions || 0;
+    streak = saved.streak || 0;
+    doneFired = saved.doneFired || false;
+  } else {
+    // new day — check if yesterday was complete
+    const yest = new Date(); yest.setDate(yest.getDate() - 1);
+    if (saved.date === yest.toDateString() && (saved.elapsed || 0) >= GOAL) {
+      streak = (saved.streak || 0) + 1;
+    } else {
+      streak = 0;
+    }
+  }
+
+  let weekHistory = JSON.parse(localStorage.getItem('studietimer_week') || '[]');
+
+  function save() {
+    localStorage.setItem('studietimer', JSON.stringify({ date: today, elapsed, sessions, streak, doneFired }));
+  }
+
+  function fmt(s) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+  }
+  function fmtShort(s) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    return h + ':' + String(m).padStart(2,'0');
+  }
+
+  function render() {
+    const remaining = Math.max(GOAL - elapsed, 0);
+    const pct = Math.min(elapsed / GOAL, 1);
+    const isDone = elapsed >= GOAL;
+
+    // clock
+    const clockEl = document.getElementById('clockDisplay');
+    clockEl.textContent = fmt(remaining);
+    clockEl.className = 'clock-time' + (isDone ? ' done' : '');
+
+// progress bar
+    document.getElementById('progFill').style.width = (pct * 100).toFixed(1) + '%';
+    document.getElementById('progFill').className = 'prog-bar-fill' + (isDone ? ' done' : '');
+    document.getElementById('progCount').textContent = fmtShort(elapsed) + ' / 6:00';
+
+    // stats
+    document.getElementById('studiedStat').textContent = fmtShort(elapsed);
+    document.getElementById('sessionsStat').textContent = sessions;
+    document.getElementById('streakNum').textContent = streak;
+
+    // status
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    if (isDone) {
+      dot.className = 'status-dot'; txt.textContent = 'Doel behaald!';
+    } else if (running) {
+      dot.className = 'status-dot active'; txt.textContent = 'Bezig met studeren...';
+    } else {
+      dot.className = 'status-dot'; txt.textContent = elapsed > 0 ? 'Gepauzeerd' : 'Klaar om te beginnen';
+    }
+
+    // main button
+    const btn = document.getElementById('mainBtn');
+    if (isDone) {
+      btn.textContent = 'Voltooid ✓';
+      btn.className = 'btn-main done-btn';
+    } else if (running) {
+      btn.textContent = 'Pauzeer';
+      btn.className = 'btn-main paused';
+    } else {
+      btn.textContent = elapsed > 0 ? 'Hervat' : 'Start';
+      btn.className = 'btn-main';
+    }
+
+    // done overlay
+    if (isDone && !doneFired) {
+      doneFired = true;
+      save();
+      updateWeekHistory(true);
+      setTimeout(() => document.getElementById('doneOverlay').classList.add('show'), 400);
+    }
+
+    // date
+    document.getElementById('dateLabel').textContent = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    renderWeek();
+  }
+
+  function toggleTimer() {
+    if (elapsed >= GOAL) return;
+    if (running) {
+      running = false;
+      clearInterval(interval);
+    } else {
+      running = true;
+      sessions++;
+      interval = setInterval(() => { elapsed++; save(); render(); }, 1000);
+    }
+    render();
+  }
+
+  function resetDay() {
+    if (!confirm('Dag resetten?')) return;
+    running = false; clearInterval(interval);
+    elapsed = 0; sessions = 0; doneFired = false;
+    save();
+    document.getElementById('doneOverlay').classList.remove('show');
+    render();
+  }
+
+  function dismissDone() {
+    document.getElementById('doneOverlay').classList.remove('show');
+  }
+
+  // Week history
+  function updateWeekHistory(complete) {
+    const entry = { date: today, complete };
+    const idx = weekHistory.findIndex(e => e.date === today);
+    if (idx >= 0) weekHistory[idx] = entry; else weekHistory.push(entry);
+    weekHistory = weekHistory.slice(-7);
+    localStorage.setItem('studietimer_week', JSON.stringify(weekHistory));
+  }
+
+  function renderWeek() {
+    const days = ['Ma','Di','Wo','Do','Vr','Za','Zo'];
+    const todayIdx = (new Date().getDay() + 6) % 7;
+    const container = document.getElementById('weekDays');
+    container.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - (todayIdx - i));
+      const ds = date.toDateString();
+      const hist = weekHistory.find(e => e.date === ds);
+      const isToday = i === todayIdx;
+      const complete = hist ? hist.complete : (isToday && elapsed >= GOAL);
+      const div = document.createElement('div');
+      div.className = 'day-dot';
+      div.innerHTML = `
+        <div class="day-dot-circle ${complete ? 'complete' : (isToday ? 'today' : '')}">${complete ? '✓' : (i + 1)}</div>
+        <div class="day-dot-lbl">${days[i]}</div>`;
+      container.appendChild(div);
+    }
+  }
+
+  // init
+  updateWeekHistory(elapsed >= GOAL);
+  render();
+</script>
+</body>
+</html>
